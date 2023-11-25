@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 const cookieParser = require('cookie-parser')
 const User = require('../api/model/User.js');
 const Place = require('../api/model/Place.js');
+const Booking = require('../api/model/Booking.js');
 const imageDownloader = require('image-downloader');
 const multer = require('multer');
 const fs = require('fs');
@@ -165,6 +166,40 @@ app.put('/places', async (req, res) => {
 app.get('/places', async (req, res) => {
     res.json(await Place.find())
 });
+
+
+app.post('/bookings', async (req, res) => {
+    const userData = await getUserDataFromRequest(req);
+    const {
+        place, checkIn, checkOut, numberOfGuests, name, phone, price
+    } = req.body;
+
+    await Booking.create({
+        place, checkIn, checkOut, maxGuests:numberOfGuests, name, phone, price, user: userData.id,
+    }).then((response) => {
+        res.json(response);
+    }).catch(err => {
+        throw err;
+    })
+
+});
+
+function getUserDataFromRequest(req) {
+    return new Promise((resolve, reject) => {
+        jwt.verify(req.cookies.token, jwtSecret, {}, async (err, userData) => {
+            if (err) throw err;
+            resolve(userData);
+        });
+    })
+
+    }
+app.get('/bookings', async (req, res) => {
+
+    const userData = await getUserDataFromRequest(req);
+
+    res.json(await Booking.find({user: userData.id}).populate('place'))
+});
+
 
 
 app.listen(4000);
